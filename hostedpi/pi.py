@@ -77,7 +77,7 @@ class Pi:
         self._ipv6_network = IPv6Network(data['ip_routed'])
         self._is_booting = bool(data['is_booting'])
         self._location = data['location']
-        self._model = int(data['model'])
+        self._model = data['model']
         self._model_full = data['model_full']
         self._power = bool(data['power'])
         self._status = data['status']

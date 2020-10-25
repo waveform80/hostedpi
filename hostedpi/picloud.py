@@ -12,6 +12,8 @@ from .utils import ssh_import_id, parse_ssh_keys
 from .exc import HostedPiException
 
 
+_API_URL = 'https://api.mythic-beasts.com/beta/servers'
+
 class PiCloud:
     """
     A connection to the Mythic Beasts Pi Cloud API for creating and managing
@@ -54,27 +56,24 @@ class PiCloud:
 
         All SSH arguments provided will be used in combination
     """
-    _API_URL = 'https://api.mythic-beasts.com/beta/servers'
-
-    def __init__(self, api_id=None, api_secret=None, *, ssh_keys=None,
-                 ssh_key_path=None, ssh_import_github=None,
-                 ssh_import_launchpad=None):
+    def __init__(self, api_id=None, api_secret=None, *, api_url=None,
+                 auth_url=None, ssh_keys=None, ssh_key_path=None,
+                 ssh_import=None):
+        if api_url is None:
+            api_url = os.environ.get('HOSTEDPI_API_URL', _API_URL)
         if api_id is None:
             api_id = os.environ.get('HOSTEDPI_ID')
-
         if api_secret is None:
             api_secret = os.environ.get('HOSTEDPI_SECRET')
-
         if api_id is None or api_secret is None:
             raise HostedPiException(
                 "Environment variables HOSTEDPI_ID and HOSTEDPI_SECRET must be "
                 "set or api_id and api_secret passed as arguments"
             )
 
-        self.ssh_keys = parse_ssh_keys(ssh_keys, ssh_key_path,
-                                       ssh_import_github, ssh_import_launchpad)
-
-        self._auth = MythicAuth(api_id, api_secret)
+        self.ssh_keys = parse_ssh_keys(ssh_keys, ssh_key_path, ssh_import)
+        self._api_url = api_url
+        self._auth = MythicAuth(api_id, api_secret, auth_url=auth_url)
 
     def __repr__(self):
         return "<PiCloud>"
@@ -86,7 +85,7 @@ class PiCloud:
     @property
     def pis(self):
         "A dictionary of :class:`~hostedpi.pi.Pi` objects keyed by their names."
-        url = '{}/pi'.format(self._API_URL)
+        url = '{}/pi'.format(self._api_url)
         r = requests.get(url, headers=self.headers)
 
         try:
@@ -188,7 +187,7 @@ class PiCloud:
         self._validate_model(model)
         self._validate_disk_size(disk_size)
 
-        url = '{}/pi/{}'.format(self._API_URL, name)
+        url = '{}/pi/{}'.format(self._api_url, name)
         data = {
             'disk': disk_size,
             'model': model,
@@ -246,7 +245,7 @@ class PiCloud:
         model = str(model)
         if model not in ('3', '4'):
             raise HostedPiException('model must be 3 or 4')
-        url = '{}/pi-os-images/{}'.format(self._API_URL, model)
+        url = '{}/pi-os-images/{}'.format(self._api_url, model)
         r = requests.get(url, headers=self.headers)
 
         try:

@@ -7,10 +7,13 @@ from .exc import MythicAuthenticationError
 from .__version__ import __version__
 
 
-class MythicAuth:
-    _LOGIN_URL = "https://auth.mythic-beasts.com/login"
+_AUTH_URL = "https://auth.mythic-beasts.com/login"
 
-    def __init__(self, api_id, api_secret):
+class MythicAuth:
+    def __init__(self, api_id, api_secret, *, auth_url=None):
+        if auth_url is None:
+            auth_url = os.environ.get('HOSTEDPI_AUTH_URL', _AUTH_URL)
+        self._auth_url = auth_url
         self._creds = (api_id, api_secret)
         self._token_expiry = datetime.now()
         self._headers = {
@@ -37,7 +40,7 @@ class MythicAuth:
         data = {
             'grant_type': 'client_credentials'
         }
-        r = requests.post(self._LOGIN_URL, headers=self._headers,
+        r = requests.post(self._auth_url, headers=self._headers,
                           auth=self._creds, data=data)
 
         try:
